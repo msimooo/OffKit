@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Grocery Lists</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛒</text></svg>">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Nunito:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --white: #FFFFFF;
+    --bg: #F7F8FA;
+    --green: #2D9E6B;
+    --green-light: #E8F7F0;
+    --green-mid: #3DB882;
+    --red: #E05252;
+    --red-light: #FEF0F0;
+    --amber: #D97706;
+    --amber-light: #FEF3C7;
+    --ink: #1A1A2E;
+    --ink-mid: #4A4A6A;
+    --ink-muted: #9B9BB0;
+    --border: #E8E8EF;
+    --shadow-sm: 0 2px 8px rgba(0,0,0,0.05);
+    --shadow-md: 0 4px 20px rgba(0,0,0,0.09);
+    --radius: 16px;
+    --radius-sm: 10px;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { -webkit-text-size-adjust: 100%; }
+
+  body {
+    font-family: 'Nunito', sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    min-height: 100vh; min-height: 100dvh;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  /* ── HEADER ── */
+  header {
+    background: var(--white);
+    border-bottom: 1.5px solid var(--border);
+    padding: 0 max(20px, env(safe-area-inset-left));
+    height: 62px;
+    display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 100;
+    box-shadow: var(--shadow-sm);
+    gap: 12px;
+  }
+  .header-left { display: flex; align-items: center; gap: 10px; }
+  .header-title {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(1.05rem, 4vw, 1.3rem);
+    color: var(--ink);
+  }
+  .new-btn {
+    background: var(--green); color: #fff; border: none;
+    border-radius: var(--radius-sm); padding: 9px 16px;
+    font-family: 'Nunito', sans-serif; font-size: 0.88rem; font-weight: 700;
+    cursor: pointer; display: flex; align-items: center; gap: 6px;
+    white-space: nowrap; flex-shrink: 0;
+    box-shadow: 0 2px 10px rgba(45,158,107,0.28);
+    transition: background 0.18s, transform 0.1s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .new-btn:hover { background: var(--green-mid); }
+  .new-btn:active { transform: scale(0.96); }
+  .new-btn .lbl { display: none; }
+
+  /* ── MAIN ── */
+  main {
+    max-width: 860px; margin: 0 auto;
+    padding: 22px max(16px, env(safe-area-inset-left)) 80px;
+  }
+
+  /* ── EMPTY STATE ── */
+  .empty-state { text-align: center; padding: 72px 20px; color: var(--ink-muted); }
+  .empty-state .e-icon { font-size: 3.2rem; margin-bottom: 14px; }
+  .empty-state h2 { font-family: 'Playfair Display', serif; font-size: 1.25rem; color: var(--ink-mid); margin-bottom: 8px; }
+  .empty-state p { font-size: 0.88rem; line-height: 1.6; }
+
+  /* ── CARD ── */
+  .list-card {
+    background: var(--white);
+    border-radius: var(--radius);
+    border: 1.5px solid var(--border);
+    margin-bottom: 18px;
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+    transition: box-shadow 0.2s;
+    animation: fadeIn 0.22s ease;
+  }
+  .list-card:hover { box-shadow: var(--shadow-md); }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── CARD HEADER ── */
+  .card-header {
+    padding: 13px 16px;
+    display: flex; align-items: center; gap: 10px;
+    border-bottom: 1.5px solid var(--border);
+  }
+  .list-icon { font-size: 1.3rem; flex-shrink: 0; }
+
+  .list-meta { font-size: 0.7rem; color: var(--ink-muted); margin-top: 1px; }
+
+  .card-actions { display: flex; gap: 5px; flex-shrink: 0; }
+  .card-btn {
+    border: 1.5px solid var(--border); border-radius: 8px;
+    width: 32px; height: 32px; background: none; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.8rem; transition: background 0.15s, border-color 0.15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .card-btn:active { transform: scale(0.92); }
+  .card-btn.rename:hover, .card-btn.rename.active { background: var(--green-light); border-color: var(--green); }
+  .card-btn.del-list:hover { background: var(--red-light); border-color: var(--red); }
+
+  /* ── RENAME PANEL ── */
+  .rename-panel {
+    padding: 12px 16px 14px;
+    border-bottom: 1.5px solid var(--border);
+    background: var(--green-light);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    animation: fadeIn 0.18s ease;
+  }
+  .rename-panel label {
+    font-size: 0.72rem; font-weight: 700;
+    letter-spacing: 0.05em; text-transform: uppercase;
+    color: var(--green);
+  }
+  .rename-input-row { display: flex; gap: 8px; align-items: center; }
+  .rename-text-inp {
+    flex: 1;
+    padding: 9px 12px;
+    border: 1.5px solid var(--green); border-radius: var(--radius-sm);
+    font-family: 'Playfair Display', serif; font-size: 1rem;
+    color: var(--ink); background: #fff; outline: none;
+    -webkit-appearance: none;
+  }
+  .rename-save {
+    padding: 9px 16px; border: none; border-radius: var(--radius-sm);
+    background: var(--green); color: #fff;
+    font-family: 'Nunito', sans-serif; font-size: 0.88rem; font-weight: 700;
+    cursor: pointer; white-space: nowrap;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .rename-save:active { background: var(--green-mid); }
+  .rename-cancel {
+    padding: 9px 12px; border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+    background: #fff; font-family: 'Nunito', sans-serif; font-size: 0.88rem;
+    color: var(--ink-mid); cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .rename-cancel:active { background: var(--bg); }
+
+  .icon-picker {
+    display: flex; flex-wrap: wrap; gap: 6px;
+  }
+  .icon-opt {
+    width: 36px; height: 36px; border-radius: 8px;
+    border: 2px solid transparent; background: #fff;
+    font-size: 1.15rem; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: border-color 0.15s, transform 0.1s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .icon-opt:hover { border-color: var(--green); transform: scale(1.1); }
+  .icon-opt.selected { border-color: var(--green); background: var(--green-light); transform: scale(1.1); }
+  .icon-opt:active { transform: scale(0.94); }
+
+  /* ── ITEMS ── */
+  .items-area { padding: 6px 16px 4px; }
+
+  /* ── NORMAL ITEM ROW ── */
+  .item-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+    animation: fadeIn 0.18s ease;
+    min-height: 42px;
+  }
+  .item-row:last-child { border-bottom: none; }
+
+  .item-info { flex: 1; min-width: 0; }
+  .item-name-text { 
+    font-size: 0.92rem; color: var(--ink);
+    word-break: break-word; line-height: 1.3;
+    transition: color 0.2s;
+  }
+  .item-meta-row { display: flex; align-items: center; gap: 6px; margin-top: 2px; flex-wrap: wrap; }
+
+  .item-qty-badge {
+    font-size: 0.68rem; font-weight: 700; color: var(--green);
+    background: var(--green-light); padding: 1px 7px; border-radius: 20px;
+    white-space: nowrap;
+  }
+  .item-price-badge {
+    font-size: 0.72rem; font-weight: 700; color: var(--ink-mid);
+    white-space: nowrap;
+  }
+
+  .item-row-actions { display: flex; gap: 4px; flex-shrink: 0; }
+  .item-btn {
+    border: 1.5px solid var(--border); border-radius: 7px;
+    width: 28px; height: 28px; background: none; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.75rem; transition: background 0.15s, border-color 0.15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .item-btn:active { transform: scale(0.9); }
+  .item-btn.edit-item:hover  { background: var(--amber-light); border-color: var(--amber); }
+  .item-btn.del-item:hover   { background: var(--red-light);   border-color: var(--red); }
+
+  /* ── EDIT ITEM ROW (inline) ── */
+  .edit-item-row {
+    display: flex; flex-wrap: wrap; gap: 6px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+    border-left: 3px solid var(--amber);
+    padding-left: 10px;
+    background: var(--amber-light);
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    margin: 2px 0;
+    animation: fadeIn 0.15s ease;
+  }
+  .edit-item-row:last-child { border-bottom: none; }
+
+  .ei-name {
+    flex: 1; min-width: 110px;
+    padding: 8px 10px; border: 1.5px solid var(--amber); border-radius: 8px;
+    font-family: 'Nunito', sans-serif; font-size: 16px;
+    color: var(--ink); background: #fff; outline: none;
+    -webkit-appearance: none;
+  }
+  .ei-name:focus { border-color: var(--green); }
+
+  .ei-small {
+    width: 72px; padding: 8px 8px;
+    border: 1.5px solid var(--amber); border-radius: 8px;
+    font-family: 'Nunito', sans-serif; font-size: 16px;
+    color: var(--ink); background: #fff; outline: none;
+    text-align: center; -webkit-appearance: none;
+  }
+  .ei-small:focus { border-color: var(--green); }
+
+  .edit-item-actions { display: flex; gap: 6px; width: 100%; }
+  .ei-save {
+    flex: 1; padding: 8px; border: none; border-radius: 8px;
+    background: var(--green); color: #fff;
+    font-family: 'Nunito', sans-serif; font-size: 0.85rem; font-weight: 700;
+    cursor: pointer; transition: background 0.15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .ei-save:active { background: var(--green-mid); }
+  .ei-cancel {
+    padding: 8px 14px; border: 1.5px solid var(--border); border-radius: 8px;
+    background: none; font-family: 'Nunito', sans-serif;
+    font-size: 0.85rem; color: var(--ink-mid); cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .ei-cancel:active { background: var(--bg); }
+
+  /* ── ADD-ITEM ROW ── */
+  .add-item-row {
+    display: flex; flex-wrap: wrap; gap: 7px;
+    padding: 10px 0 14px; align-items: center;
+    border-top: 1px dashed var(--border); margin-top: 4px;
+  }
+  .ai-name {
+    flex: 1; min-width: 110px;
+    padding: 9px 12px; border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+    font-family: 'Nunito', sans-serif; font-size: 16px;
+    color: var(--ink); background: var(--bg); outline: none;
+    transition: border-color 0.2s; -webkit-appearance: none;
+  }
+  .ai-name:focus { border-color: var(--green); background: #fff; }
+  .ai-name::placeholder { color: var(--ink-muted); }
+
+  .ai-small {
+    width: 72px; padding: 9px 8px;
+    border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+    font-family: 'Nunito', sans-serif; font-size: 16px;
+    color: var(--ink); background: var(--bg); outline: none;
+    text-align: center; transition: border-color 0.2s; -webkit-appearance: none;
+  }
+  .ai-small:focus { border-color: var(--green); background: #fff; }
+  .ai-small::placeholder { color: var(--ink-muted); font-size: 0.78rem; }
+
+  .ai-add {
+    background: var(--green); color: #fff; border: none;
+    border-radius: var(--radius-sm); padding: 9px 14px;
+    font-family: 'Nunito', sans-serif; font-size: 0.88rem; font-weight: 700;
+    cursor: pointer; white-space: nowrap; flex-shrink: 0;
+    transition: background 0.18s, transform 0.1s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .ai-add:hover { background: var(--green-mid); }
+  .ai-add:active { transform: scale(0.96); }
+
+  /* ── TOTAL BAR ── */
+  .total-bar {
+    margin: 0 16px 14px;
+    background: var(--green-light);
+    border: 1.5px solid #b8e8d4;
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  }
+  .total-label { font-size: 0.78rem; font-weight: 700; color: var(--green); text-transform: uppercase; letter-spacing: 0.04em; }
+  .total-sub { font-size: 0.7rem; color: var(--ink-muted); margin-top: 2px; }
+  .total-amount { font-family: 'Playfair Display', serif; font-size: 1.15rem; color: var(--green); }
+
+  /* ── TOAST ── */
+  .toast {
+    position: fixed;
+    bottom: max(22px, env(safe-area-inset-bottom)); left: 50%;
+    transform: translateX(-50%) translateY(70px);
+    background: var(--ink); color: #fff;
+    padding: 10px 20px; border-radius: 50px;
+    font-size: 0.84rem; font-weight: 600; z-index: 999;
+    transition: transform 0.28s cubic-bezier(0.34,1.4,0.64,1), opacity 0.28s;
+    opacity: 0; pointer-events: none;
+    max-width: calc(100vw - 40px); text-align: center; white-space: nowrap;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+  /* ── RESPONSIVE ── */
+  @media (min-width: 480px) {
+    .new-btn .lbl { display: inline; }
+    main { padding: 26px 20px 80px; }
+  }
+  @media (min-width: 640px) {
+    header { height: 68px; padding: 0 32px; }
+    main { padding: 30px 28px 80px; }
+    .card-header { padding: 14px 20px; }
+    .items-area { padding: 8px 20px 4px; }
+    .total-bar { margin: 0 20px 16px; }
+  }
+  @media (min-width: 900px) { header { padding: 0 40px; } }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <span>🛒</span>
+    <span class="header-title">Grocery Lists</span>
+  </div>
+  <button class="new-btn" onclick="createList()">
+    <span>＋</span>
+    <span class="lbl">New List</span>
+  </button>
+</header>
+
+<main>
+  <div id="root"></div>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  // Track which item is being edited: { listId, itemId }
+  let editingItem = null;
+  let toastTimer;
+
+  /* ── STORAGE ── */
+  function getLists() { return JSON.parse(localStorage.getItem('glists_v3') || '[]'); }
+  function save(d)    { localStorage.setItem('glists_v3', JSON.stringify(d)); }
+
+  /* ── TOAST ── */
+  function toast(msg, ms = 2600) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove('show'), ms);
+  }
+
+  /* ── CREATE LIST ── */
+  function createList() {
+    const lists = getLists();
+    // Find the next available number (List 1, List 2, …)
+    const usedNums = lists
+      .map(l => { const m = l.name.match(/^List (\d+)$/); return m ? parseInt(m[1]) : 0; });
+    let n = 1;
+    while (usedNums.includes(n)) n++;
+    lists.push({
+      id:    uid(),
+      name:  'List ' + n,
+      icon:  '🧺',
+      items: []
+    });
+    save(lists);
+    editingItem = null;
+    render();
+    toast('✅ List ' + n + ' created — tap ✏️ to rename');
+  }
+
+  /* ── DELETE LIST ── */
+  function deleteList(id) {
+    const list = getLists().find(l => l.id === id);
+    if (!confirm(`Delete "${list?.name}"?\nAll items will be removed.`)) return;
+    save(getLists().filter(l => l.id !== id));
+    editingItem = null;
+    render();
+    toast('🗑️ List deleted');
+  }
+
+  /* ── RENAME LIST (inline) ── */
+  const ICON_OPTIONS = ['🧺','🛒','🍎','🥦','🥩','🍞','🥛','🌿','🍋','🧴','🏠','🎂','☕','🍷','🌾','🐟','🧁','🥗','🍕','🎁'];
+  let renamingListId = null;
+
+  function startRename(id) {
+    renamingListId = (renamingListId === id) ? null : id;
+    render();
+    if (renamingListId) {
+      const inp = document.getElementById('name-' + id);
+      if (inp) { inp.focus(); inp.select(); }
+    }
+  }
+
+  function pickIcon(listId, icon) {
+    let lists = getLists();
+    lists = lists.map(l => l.id === listId ? { ...l, icon } : l);
+    save(lists);
+    render();
+    // re-open rename panel after render
+    renamingListId = listId;
+    render();
+  }
+
+  function commitRename(id) {
+    const inp = document.getElementById('name-' + id);
+    if (!inp) return;
+    const val = inp.value.trim() || 'My List';
+    let lists = getLists();
+    lists = lists.map(l => l.id === id ? { ...l, name: val } : l);
+    save(lists);
+    renamingListId = null;
+    render();
+    toast('✅ List updated');
+  }
+
+  /* ── ADD ITEM ── */
+  function addItem(listId) {
+    const nameEl  = document.getElementById('ain-' + listId);
+    const qtyEl   = document.getElementById('aiq-' + listId);
+    const priceEl = document.getElementById('aip-' + listId);
+    const name    = nameEl.value.trim();
+    const qty     = qtyEl.value.trim();
+    const price   = parseFloat(priceEl.value);
+    if (!name) { nameEl.focus(); return; }
+
+    let lists = getLists();
+    const list = lists.find(l => l.id === listId);
+    if (!list) return;
+    list.items.push({ id: uid(), name, qty, price: isNaN(price) ? null : price, checked: false });
+    save(lists);
+    nameEl.value = ''; qtyEl.value = ''; priceEl.value = '';
+    nameEl.focus();
+    render();
+  }
+
+  /* ── OPEN ITEM EDIT ── */
+  function startEditItem(listId, itemId) {
+    // toggle off if same
+    if (editingItem && editingItem.listId === listId && editingItem.itemId === itemId) {
+      editingItem = null;
+    } else {
+      editingItem = { listId, itemId };
+    }
+    render();
+    // focus name field after render
+    const el = document.getElementById('ei-name-' + itemId);
+    if (el) { el.focus(); el.select(); }
+  }
+
+  /* ── SAVE ITEM EDIT ── */
+  function saveItemEdit(listId, itemId) {
+    const nameEl  = document.getElementById('ei-name-'  + itemId);
+    const qtyEl   = document.getElementById('ei-qty-'   + itemId);
+    const priceEl = document.getElementById('ei-price-' + itemId);
+    const name    = nameEl?.value.trim();
+    const qty     = qtyEl?.value.trim();
+    const price   = parseFloat(priceEl?.value);
+    if (!name) { nameEl?.focus(); return; }
+
+    let lists = getLists();
+    const list = lists.find(l => l.id === listId);
+    if (!list) return;
+    list.items = list.items.map(i =>
+      i.id === itemId
+        ? { ...i, name, qty, price: isNaN(price) ? null : price }
+        : i
+    );
+    save(lists);
+    editingItem = null;
+    render();
+    toast('✅ Item updated');
+  }
+
+  /* ── CANCEL ITEM EDIT ── */
+  function cancelEditItem() {
+    editingItem = null;
+    render();
+  }
+
+  /* ── DELETE ITEM ── */
+  function deleteItem(listId, itemId) {
+    let lists = getLists();
+    const list = lists.find(l => l.id === listId);
+    if (!list) return;
+    list.items = list.items.filter(i => i.id !== itemId);
+    if (editingItem?.itemId === itemId) editingItem = null;
+    save(lists);
+    render();
+  }
+
+  /* ── RENDER ── */
+  function render() {
+    const root  = document.getElementById('root');
+    const lists = getLists();
+
+    if (!lists.length) {
+      root.innerHTML = `
+        <div class="empty-state">
+          <div class="e-icon">🛒</div>
+          <h2>No lists yet</h2>
+          <p>Tap <strong>＋ New List</strong> to get started.<br>You can rename it and pick an icon anytime.</p>
+        </div>`;
+      return;
+    }
+
+    root.innerHTML = lists.map(list => {
+      const total    = list.items.length;
+      const priced   = list.items.filter(i => i.price !== null && i.price !== undefined);
+      const totalAmt = priced.reduce((s, i) => s + i.price, 0);
+
+      /* items */
+      const itemsHtml = list.items.map(item => {
+        const isEditing = editingItem?.listId === list.id && editingItem?.itemId === item.id;
+
+        if (isEditing) {
+          return `
+            <div class="edit-item-row">
+              <input class="ei-name" id="ei-name-${item.id}"
+                value="${esc(item.name)}" placeholder="Item name" maxlength="60"
+                onkeydown="if(event.key==='Enter')saveItemEdit('${list.id}','${item.id}');if(event.key==='Escape')cancelEditItem()">
+              <input class="ei-small" id="ei-qty-${item.id}"
+                value="${esc(item.qty||'')}" placeholder="Qty" maxlength="10"
+                onkeydown="if(event.key==='Enter')saveItemEdit('${list.id}','${item.id}');if(event.key==='Escape')cancelEditItem()">
+              <input class="ei-small" id="ei-price-${item.id}" type="number"
+                value="${item.price !== null && item.price !== undefined ? item.price : ''}"
+                placeholder="Price" min="0" step="0.01"
+                onkeydown="if(event.key==='Enter')saveItemEdit('${list.id}','${item.id}');if(event.key==='Escape')cancelEditItem()">
+              <div class="edit-item-actions">
+                <button class="ei-save" onclick="saveItemEdit('${list.id}','${item.id}')">✓ Save</button>
+                <button class="ei-cancel" onclick="cancelEditItem()">Cancel</button>
+              </div>
+            </div>`;
+        }
+
+        return `
+          <div class="item-row">
+
+            <div class="item-info">
+              <div class="item-name-text">${esc(item.name)}</div>
+              ${item.qty || (item.price !== null && item.price !== undefined) ? `
+              <div class="item-meta-row">
+                ${item.qty   ? `<span class="item-qty-badge">${esc(item.qty)}</span>` : ''}
+                ${item.price !== null && item.price !== undefined ? `<span class="item-price-badge">${fmt(item.price)}</span>` : ''}
+              </div>` : ''}
+            </div>
+            <div class="item-row-actions">
+              <button class="item-btn edit-item" onclick="startEditItem('${list.id}','${item.id}')" title="Edit item">✏️</button>
+              <button class="item-btn del-item"  onclick="deleteItem('${list.id}','${item.id}')"  title="Delete item">🗑️</button>
+            </div>
+          </div>`;
+      }).join('');
+
+      const isRenaming = renamingListId === list.id;
+
+      return `
+        <div class="list-card" id="card-${list.id}">
+
+          <!-- Card Header -->
+          <div class="card-header">
+            <span class="list-icon">${list.icon}</span>
+            <div style="flex:1;min-width:0">
+              <div class="list-name-input" style="font-family:'Playfair Display',serif;font-size:1rem;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(list.name)}</div>
+              <div class="list-meta">${total} item${total !== 1 ? 's' : ''}</div>
+            </div>
+            <div class="card-actions">
+              <button class="card-btn rename ${isRenaming ? 'active' : ''}" id="rbtn-${list.id}"
+                onclick="startRename('${list.id}')" title="Edit name & icon">✏️</button>
+              <button class="card-btn del-list"
+                onclick="deleteList('${list.id}')" title="Delete list">🗑️</button>
+            </div>
+          </div>
+
+          <!-- Rename Panel -->
+          ${isRenaming ? `
+          <div class="rename-panel">
+            <div>
+              <label>List Name</label>
+              <div class="rename-input-row" style="margin-top:6px">
+                <input class="rename-text-inp" id="name-${list.id}"
+                  value="${esc(list.name)}" maxlength="40"
+                  onkeydown="if(event.key==='Enter')commitRename('${list.id}');if(event.key==='Escape')startRename('${list.id}')">
+                <button class="rename-save" onclick="commitRename('${list.id}')">Save</button>
+                <button class="rename-cancel" onclick="startRename('${list.id}')">✕</button>
+              </div>
+            </div>
+            <div>
+              <label>Choose Icon</label>
+              <div class="icon-picker" style="margin-top:6px">
+                ${ICON_OPTIONS.map(ic => `
+                  <button class="icon-opt ${ic === list.icon ? 'selected' : ''}"
+                    onclick="pickIcon('${list.id}','${ic}')">${ic}</button>`).join('')}
+              </div>
+            </div>
+          </div>` : ''}
+
+          <!-- Items -->
+          <div class="items-area">
+            ${itemsHtml}
+
+            <!-- Add item row -->
+            <div class="add-item-row">
+              <input class="ai-name" id="ain-${list.id}" type="text"
+                placeholder="Add item…" maxlength="60"
+                onkeydown="if(event.key==='Enter')addItem('${list.id}')">
+              <input class="ai-small" id="aiq-${list.id}" type="text"
+                placeholder="Qty" maxlength="10"
+                onkeydown="if(event.key==='Enter')addItem('${list.id}')">
+              <input class="ai-small" id="aip-${list.id}" type="number"
+                placeholder="Price" min="0" step="0.01"
+                onkeydown="if(event.key==='Enter')addItem('${list.id}')">
+              <button class="ai-add" onclick="addItem('${list.id}')">＋ Add</button>
+            </div>
+          </div>
+
+          <!-- Total -->
+          ${priced.length ? `
+          <div class="total-bar">
+            <div>
+              <div class="total-label">Total</div>
+              <div class="total-sub">${priced.length} of ${total} item${total !== 1 ? 's' : ''} priced</div>
+            </div>
+            <div class="total-amount">${fmt(totalAmt)}</div>
+          </div>` : ''}
+
+        </div>`;
+    }).join('');
+  }
+
+  /* ── UTILS ── */
+  function uid()  { return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  function fmt(n) { return Number(n).toLocaleString('en-US',{style:'currency',currency:'USD',minimumFractionDigits:2}); }
+
+  render();
+</script>
+</body>
+</html>
